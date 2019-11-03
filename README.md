@@ -16,6 +16,7 @@ npm install --save react-hook-vue-composition
 
 ```jsx
 import React from "react";
+import useVueComposition from "react-hook-vue-composition";
 
 function setup({ ref }) {
   const count = ref(0);
