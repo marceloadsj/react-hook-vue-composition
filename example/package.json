@@ -1,6 +1,6 @@
 {
-  "name": "react-hook-vue-composition-api-example",
-  "homepage": "https://.github.io/react-hook-vue-composition-api",
+  "name": "react-hook-vue-composition-example",
+  "homepage": "https://.github.io/react-hook-vue-composition",
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
@@ -9,7 +9,7 @@
     "react": "link:../node_modules/react",
     "react-dom": "^16.8.6",
     "react-scripts": "^3.0.1",
-    "react-hook-vue-composition-api": "link:.."
+    "react-hook-vue-composition": "link:.."
   },
   "scripts": {
     "start": "react-scripts start",

@@ -1,29 +1,40 @@
-# react-hook-vue-composition-api
+# react-hook-vue-composition
 
-> 
+> React hook that mimics the [Vue Composition API](https://vue-composition-api-rfc.netlify.com)
 
-[![NPM](https://img.shields.io/npm/v/react-hook-vue-composition-api.svg)](https://www.npmjs.com/package/react-hook-vue-composition-api) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+### WIP: the api may change a bit
+
+[![NPM](https://img.shields.io/npm/v/react-hook-vue-composition.svg)](https://www.npmjs.com/package/react-hook-vue-composition) [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
 ## Install
 
 ```bash
-npm install --save react-hook-vue-composition-api
+npm install --save react-hook-vue-composition
 ```
 
 ## Usage
 
 ```jsx
-import React, { Component } from 'react'
+import React from "react";
 
-import { useMyHook } from 'react-hook-vue-composition-api'
+function setup({ ref }) {
+  const count = ref(0);
 
-const Example = () => {
-  const example = useMyHook()
-  return (
-    <div>{example}</div>
-  )
+  function increment() {
+    count.value++;
+  }
+
+  return { count, increment };
+}
+
+function CountButton() {
+  const { count, increment } = useVueComposition(setup);
+
+  return <button onClick={increment}>Count is: {count}</button>;
 }
 ```
+
+Check `./example` folder for more examples!
 
 ## License
 

@@ -1,6 +1,6 @@
 {
-  "short_name": "react-hook-vue-composition-api",
-  "name": "react-hook-vue-composition-api",
+  "short_name": "react-hook-vue-composition",
+  "name": "react-hook-vue-composition",
   "start_url": "./index.html",
   "display": "standalone",
   "theme_color": "#000000",
