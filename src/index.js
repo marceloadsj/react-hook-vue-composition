@@ -1,6 +1,8 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 
-const refSymbol = Symbol();
+const refSymbol = Symbol("refSymbol");
+
+let currentlyWatchEffect;
 
 /**
  * Get a callback to force update the component
@@ -15,26 +17,75 @@ function useForceUpdate() {
 }
 
 /**
+ * Get the set function to use inside the proxy
+ * @param {Set} watchers
+ * @param {Function} forceUpdate
+ * @returns {Function} The setter function
+ */
+function getSet(watchers, forceUpdate) {
+  return (target, property, value) => {
+    let prevValue;
+
+    if (isRef(target[property])) {
+      prevValue = target[property].value;
+
+      target[property].value = value;
+    } else {
+      prevValue = target[property];
+
+      target[property] = value;
+    }
+
+    forceUpdate();
+
+    watchers.forEach(watch => watch(prevValue));
+
+    return true;
+  };
+}
+
+/**
+ * Get the get function to use inside the proxy
+ * @param {Set} watchers
+ * @returns {Function} The getter function
+ */
+function getGet(watchers) {
+  return (target, property) => {
+    if (currentlyWatchEffect) {
+      const effect = currentlyWatchEffect;
+      watchers.add(effect);
+
+      currentlyWatchEffect = () => watchers.delete(effect);
+    }
+
+    if (isRef(target[property])) {
+      return target[property].value;
+    }
+
+    return target[property];
+  };
+}
+
+/**
  * Set a deep proxy on object param, adding force update to set
  * @param {Object} object
  * @param {Function} forceUpdate
  * @returns {Object} A deep proxied copy of the object argument
  */
 function setProxy(object, forceUpdate) {
-  Object.keys(object).forEach(key => {
-    if (typeof object[key] === "object") {
-      object[key] = setProxy({ ...object[key] }, forceUpdate);
+  const objectClone = isRef(object) ? object : { ...object };
+
+  Object.keys(objectClone).forEach(key => {
+    if (typeof objectClone[key] === "object") {
+      objectClone[key] = setProxy(objectClone[key], forceUpdate);
     }
   });
 
-  return new Proxy(object, {
-    set: (target, property, value) => {
-      target[property] = value;
+  const watchers = new Set();
 
-      forceUpdate();
-
-      return true;
-    }
+  return new Proxy(objectClone, {
+    set: getSet(watchers, forceUpdate),
+    get: getGet(watchers)
   });
 }
 
@@ -44,7 +95,7 @@ function setProxy(object, forceUpdate) {
  * @returns {Boolean} check if is ref symbol or not
  */
 function isRef(value) {
-  return value.__internal__type__ === refSymbol;
+  return value && value.__internal__type__ === refSymbol;
 }
 
 /**
@@ -56,23 +107,52 @@ export default function useVueCompositionApi(setup) {
   const [reactiveForceUpdate] = useForceUpdate();
   const [refForceUpdate, refUpdated] = useForceUpdate();
 
+  const watcherStopsRef = useRef();
+  if (!watcherStopsRef.current) watcherStopsRef.current = new Set();
+
   const data = useMemo(() => {
     function reactive(object) {
-      return setProxy({ ...object }, reactiveForceUpdate);
+      return setProxy(object, reactiveForceUpdate);
     }
 
     function ref(value) {
       return setProxy({ value, __internal__type__: refSymbol }, refForceUpdate);
     }
 
-    function toRefs() {}
+    function watch(effect, options) {
+      if (typeof options === "function") {
+        if (isRef(effect)) {
+          currentlyWatchEffect = prev => options(effect.value, prev);
+        } else {
+          currentlyWatchEffect = prev => options(effect(), prev);
+        }
+      } else {
+        currentlyWatchEffect = () => effect();
+      }
 
-    return setup({ reactive, ref, isRef });
+      currentlyWatchEffect();
+
+      const stop = currentlyWatchEffect;
+      currentlyWatchEffect = undefined;
+
+      watcherStopsRef.current.add(stop);
+
+      return () => {
+        watcherStopsRef.current.delete(stop);
+        stop();
+      };
+    }
+
+    return setup({ reactive, ref, isRef, watch });
   }, [setup, reactiveForceUpdate, refForceUpdate]);
+
+  useEffect(() => {
+    return () => watcherStopsRef.forEach(stop => stop());
+  }, []);
 
   return useMemo(() => {
     return Object.keys(data).reduce((parsedData, key) => {
-      if (data[key].__internal__type__ === refSymbol) {
+      if (isRef(data[key])) {
         parsedData[key] = data[key].value;
       } else {
         parsedData[key] = data[key];
