@@ -1,5 +1,7 @@
 # react-hook-vue-composition
 
+## Experimental
+
 > React hook that mimics the [Vue Composition API](https://vue-composition-api-rfc.netlify.com)
 
 ### WIP: the api may change a bit
